@@ -34,6 +34,6 @@ In aerospace maintenance, missing a failure is far more costly than unnecessary 
 
 ---
 
-**Author**: Nia Aracheva  
+**Author**: Nia Racheva  
 **Focus**: Autonomous Systems & Aerospace AI  
 **Date**: January 2026
