@@ -20,7 +20,8 @@ def test_model_class():
     import joblib
     import tempfile
     
-    X, y = make_classification(n_samples=100, n_features=2, random_state=42)
+    # Create model with 2 features (sensor3, sensor4)
+    X, y = make_classification(n_samples=100, n_features=2, n_informative=2, n_redundant=0, random_state=42)
     rf = RandomForestClassifier(n_estimators=10, random_state=42)
     rf.fit(X, y)
     
@@ -34,6 +35,29 @@ def test_model_class():
     assert 'status' in result
     assert 'confidence' in result
     assert result['confidence'] > 0 and result['confidence'] <= 1
+    
+    os.remove(temp_path)
+
+def test_batch_prediction():
+    """Test batch predictions"""
+    from src.turbofan.model import TurbofanPredictor
+    from sklearn.ensemble import RandomForestClassifier
+    import joblib
+    import tempfile
+    
+    X, y = make_classification(n_samples=100, n_features=2, n_informative=2, n_redundant=0, random_state=42)
+    rf = RandomForestClassifier(n_estimators=10, random_state=42)
+    rf.fit(X, y)
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pkl') as f:
+        joblib.dump(rf, f.name)
+        temp_path = f.name
+    
+    predictor = TurbofanPredictor(temp_path)
+    batch = np.array([[0.5, 0.5]])
+    preds = predictor.predict_batch(batch)
+    
+    assert len(preds) == 1
     
     os.remove(temp_path)
 
