@@ -77,15 +77,8 @@ def save_model(model: RandomForestClassifier, path: str) -> None:
     joblib.dump(model, path)
     logger.info("Model saved")
 
-def main() -> None:
-    logger.info("Starting training pipeline")
-    os.chdir('/Users/niaracheva/Desktop/aircraft-engine-predictive-maintenance')
-    
-    df = load_data('data/train_FD001.txt')
-    df = calculate_rul(df)
-    df = create_binary_target(df, threshold=30)
-    
-    logger.info("Generating visualizations...")
+def visualize_rul(df: pd.DataFrame) -> None:
+    logger.info("Visualizing RUL degradation...")
     engine_1 = df[df['engine_id'] == 1]
     plt.figure(figsize=(10, 4))
     plt.plot(engine_1['cycle'], engine_1['rul'], linewidth=2)
@@ -94,6 +87,63 @@ def main() -> None:
     plt.tight_layout()
     plt.savefig('visualizations/engine_degradation.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+def visualize_sensor_trajectories(df: pd.DataFrame) -> None:
+    logger.info("Visualizing sensor trajectories...")
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    for i, engine_num in enumerate([1, 50, 100]):
+        engine = df[df['engine_id'] == engine_num]
+        axes[i].scatter(engine['rul'], engine['sensor4'], alpha=0.5, s=10)
+        axes[i].axvline(x=30, color='red', linestyle='--', label='Danger zone (RUL<30)')
+        axes[i].set_xlabel('Remaining Useful Life'), axes[i].set_ylabel('Sensor 4')
+        axes[i].set_title(f'Engine {engine_num}'), axes[i].legend(), axes[i].grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('visualizations/sensor4_trajectories.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+def visualize_class_distribution(df: pd.DataFrame) -> None:
+    logger.info("Visualizing class distribution...")
+    class_dist = df['will_fail_soon'].value_counts()
+    fig, ax = plt.subplots(figsize=(6, 4))
+    class_dist.plot(kind='bar', ax=ax, color=['green', 'red'], rot=0)
+    ax.set_xticklabels(['Healthy (0)', 'Failing Soon (1)'])
+    ax.set_ylabel('Count'), ax.set_title('Binary Classification Target')
+    ax.grid(axis='y', alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('visualizations/class_distribution.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+def visualize_confusion_matrix(model: RandomForestClassifier, X_test: np.ndarray, y_test: np.ndarray) -> None:
+    logger.info("Visualizing confusion matrix...")
+    y_pred = model.predict(X_test)
+    cm = confusion_matrix(y_test, y_pred)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
+                xticklabels=['Healthy', 'Failing Soon'],
+                yticklabels=['Healthy', 'Failing Soon'])
+    ax.set_ylabel('True Label'), ax.set_xlabel('Predicted Label')
+    ax.set_title('Confusion Matrix: sensor3 + sensor4 with class weights')
+    
+    caught, missed, false_alarms = cm[1, 1], cm[1, 0], cm[0, 1]
+    total_failures = caught + missed
+    text = f"Caught {caught} failures | Missed {missed} | False alarms: {false_alarms}"
+    ax.text(0.5, -0.15, text, ha='center', transform=ax.transAxes, fontsize=10, style='italic')
+    
+    plt.tight_layout()
+    plt.savefig('visualizations/confusion_matrix.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+def main() -> None:
+    logger.info("Starting training pipeline")
+    os.chdir('/Users/niaracheva/Desktop/aircraft-engine-predictive-maintenance')
+    
+    df = load_data('data/train_FD001.txt')
+    df = calculate_rul(df)
+    df = create_binary_target(df, threshold=30)
+    
+    visualize_rul(df)
+    visualize_sensor_trajectories(df)
+    visualize_class_distribution(df)
     
     X = df[['sensor3', 'sensor4']]
     y = df['will_fail_soon']
@@ -103,6 +153,7 @@ def main() -> None:
     
     model = train_model(X_train.values, y_train.values)
     evaluate_model(model, X_test.values, y_test.values)
+    visualize_confusion_matrix(model, X_test.values, y_test.values)
     
     os.makedirs('models', exist_ok=True)
     save_model(model, 'models/turbofan_failure_predictor.pkl')
