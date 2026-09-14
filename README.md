@@ -48,9 +48,7 @@ Aircraft engine maintenance traditionally relies on fixed maintenance schedules,
 }
 ```
 
-**Download:** 
-- NASA: https://ti.arc.nasa.gov/c/6/
-- Kaggle: https://www.kaggle.com/datasets/behnam-motahari/nasa-cmapss
+**Dataset:** https://www.kaggle.com/code/wassimderbel/nasa-predictive-maintenance-rul
 
 ### Feature Engineering
 
