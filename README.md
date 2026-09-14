@@ -1,39 +1,90 @@
 # Aircraft Engine Predictive Maintenance
 
-Predicting turbofan engine failures using NASA C-MAPSS dataset with sensor data analysis and Random Forest classification.
+Production ML system for turbofan engine failure prediction. Achieves 89% failure detection rate on NASA C-MAPSS dataset with Random Forest classification and sensor analysis.
 
 ## Problem Statement
 
-Airlines need to predict engine failures before they happen to:
-- Prevent in-flight emergencies
-- Reduce maintenance costs
-- Optimize aircraft availability
+Aircraft maintenance requires detecting engine failures before they occur to prevent in-flight emergencies and reduce operational costs. The challenge: false negatives (missed failures) are far more costly than false positives (unnecessary maintenance). Standard ML metrics optimize for accuracy; safety-critical systems require recall-optimized models.
 
 ## Approach
 
-1. **Data Exploration**: Analyzed 21 sensors across 100 engines
-2. **Feature Discovery**: Identified sensor3 and sensor4 as strongest predictors through comparative analysis
-3. **Class Imbalance Handling**: Used class weights to prioritize failure detection
-4. **Model**: Random Forest with 100 estimators
+Dataset: NASA C-MAPSS turbofan degradation (20,631 observations, 100 engines, 21 sensors)
 
-## Key Results
+Feature Analysis: Identified sensor3 (temperature) and sensor4 (pressure) as strongest degradation indicators through statistical comparison of healthy vs failing engines.
 
-- **89% Recall**: Catches 89% of engine failures
-- **92% Overall Accuracy**: Strong general performance
-- **Trade-off**: 32% false alarm rate (acceptable for safety-critical applications)
+Model: Random Forest (100 estimators, balanced class weights) optimized for failure detection over general accuracy.
+
+## Results
+
+Failure Detection: 89% recall (554 out of 620 failing engines caught)
+Overall Accuracy: 92%
+False Alarms: 264 (acceptable trade-off for safety-critical applications)
+
+## Architecture
+
+Training Pipeline (src/turbofan/train.py)
+- Loads NASA C-MAPSS dataset
+- Calculates remaining useful life per engine
+- Trains Random Forest with class imbalance handling
+- Generates diagnostic visualizations
+
+API Server (src/turbofan/api.py)
+- FastAPI REST endpoint
+- POST /predict accepts sensor3, sensor4 readings
+- Returns prediction, confidence, failure probability, maintenance recommendation
+- Interactive documentation at /docs
+
+Model Class (src/turbofan/model.py)
+- Reusable predictor for single and batch predictions
+- Loads pre-trained model from joblib
+
+Monitoring (src/turbofan/monitoring.py)
+- Data drift detection using Kolmogorov-Smirnov test
+- Alerts on distribution shift
+
+## Deployment
+
+Docker: Containerized for reproducibility across environments
+GitHub Actions: Automated testing on every push
+Testing: pytest suite with 3/3 tests passing
+
+## Usage
+
+Training
+python src/turbofan/train.py
+
+Testing
+pytest tests/ -v
+
+API Server
+uvicorn src.turbofan.api:app --reload
+Visit http://localhost:8000/docs for interactive documentation
+
+Docker
+docker build -t turbofan .
+docker run -p 8000:8000 turbofan
 
 ## Technical Stack
 
-- Python, pandas, scikit-learn, matplotlib, seaborn
-- NASA C-MAPSS Turbofan Engine Degradation Dataset
-- Random Forest with balanced class weights
+Python, pandas, NumPy, scikit-learn, SciPy, FastAPI, Docker, pytest, GitHub Actions
 
-## Real-World Impact
+## Key Insight
 
-In aerospace maintenance, missing a failure is far more costly than unnecessary inspections. This model prioritizes catching failures (high recall) over minimizing false alarms.
+Safety-critical ML optimization requires domain-aware cost functions rather than generic accuracy metrics. In aerospace maintenance, missing one failure is costlier than multiple false alarms. This system prioritizes recall at the expense of precision—a deliberate choice reflecting the true operational cost structure.
 
----
+## Files
 
-**Author**: Nia Racheva  
-**Focus**: Autonomous Systems & Aerospace AI  
-**Date**: January 2026
+src/turbofan/train.py: Training pipeline with logging and type hints
+src/turbofan/model.py: TurbofanPredictor class for inference
+src/turbofan/api.py: FastAPI server for real-time predictions
+src/turbofan/monitoring.py: Data drift detection
+tests/test_model.py: Automated test suite
+Dockerfile: Container specification
+setup.py: Package configuration
+requirements.txt: Dependencies
+
+## Author
+
+Nia Racheva
+niaracheva05@gmail.com
+github.com/nia05-tch
